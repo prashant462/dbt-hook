@@ -1,0 +1,5 @@
+- id: dbt-rebalance-check
+  name: dbt-rebalance-check
+  description: Will check if the model contains a rebalance if it is partitioned
+  entry: dbt_rebalance_check
+  language: python
