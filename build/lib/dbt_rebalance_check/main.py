@@ -3,7 +3,7 @@ import argparse
 
 def print_arguments(arguments: list[str]):
     for argument in arguments:
-        print(argument)
+        print("+++"+argument)
 
 
 def main():
