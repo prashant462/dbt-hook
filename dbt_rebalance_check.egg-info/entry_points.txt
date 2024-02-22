@@ -1,0 +1,2 @@
+[console_scripts]
+dbt_rebalance_check = dbt_rebalance_check.main:main

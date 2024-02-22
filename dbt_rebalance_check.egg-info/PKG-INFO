@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: dbt-rebalance-check
+Version: 0.1.0
+Summary: print the arguments you pass
+Home-page: https://jorgealvarado.me
+Author: Prashant Malhotra
+Author-email: prashantmalhotra462@gmail.com
+License: MIT
