@@ -1,38 +1,50 @@
 import argparse
 import os
 import time
-from typing import IO, Optional, Sequence
+from typing import Any, Dict, Iterable, Optional, Sequence
 
-from tracking import dbtCheckpointTracking
-from utils import JsonOpenError, add_default_args, get_dbt_manifest, red
+from dbt_rebalance_check.utils import (
+    JsonOpenError,
+    add_default_args,
+    get_dbt_manifest,
+    get_filenames,
+    get_model_schemas,
+    get_model_sqls,
+    get_models, get_dbt_model_query,
+)
+from dbt_rebalance_check.tracking import dbtCheckpointTracking
 
 
-def check_semicolon(file_obj: IO[bytes], replace: bool = False) -> int:
-    # Test for newline at end of file
-    # Empty files will throw IOError here
-    file_obj.read()
+def create_repartition_hint(partitions: str) -> str:
+    return f"/*+ REPARTITION({partitions}) */"
+
+
+def has_labels_key(
+        paths: Sequence[str],
+        manifest: Dict[str, Any],
+        include_disabled: bool = False,
+) -> int:
     status_code = 0
-    try:
-        file_obj.seek(-1, os.SEEK_END)
-    except OSError:
-        return status_code
-    last_character = file_obj.read(1)  # pragma: no mutate
+    sqls = get_model_sqls(paths, manifest, include_disabled)
+    filenames = set(sqls.keys())
+    models = get_models(manifest, filenames, include_disabled=include_disabled)
 
-    while last_character in {b"\n", b"\r"}:  # pragma: no mutate
-        # Deal with the beginning of the file
-        if file_obj.tell() == 1:
-            return status_code
-
-        # Go back two bytes and read a character
-        file_obj.seek(-2, os.SEEK_CUR)
-        last_character = file_obj.read(1)  # pragma: no mutate
-
-    # If last character is semicolon
-    if last_character == b";":
-        if replace:
-            file_obj.seek(-1, os.SEEK_CUR)
-            file_obj.truncate()
-        status_code = 1
+    for model in models:
+        model_config = model.node.get("config")
+        print(get_dbt_model_query(model))
+        if "partition_by" in model_config:
+            print(model_config)
+            partition_col = model_config(["partition_by"])
+            if isinstance(partition_col, list):
+                parition = partition_col.join(",")
+            else:
+                parition = partition_col
+            modelQuery = get_dbt_model_query(model)
+            repartitionHint = create_repartition_hint(parition)
+            if repartitionHint in modelQuery:
+                status_code = 0
+            else:
+                status_code = 1
     return status_code
 
 
@@ -42,7 +54,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     args = parser.parse_args(argv)
 
-    status_code = 0
     try:
         manifest = get_dbt_manifest(args)
     except JsonOpenError as e:
@@ -50,19 +61,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 1
 
     start_time = time.time()
-    for filename in args.filenames:
-        # Read as binary so we can read byte-by-byte
-        with open(filename, "rb+") as file_obj:
-            x = file_obj.read()
-            print(x)
-            status_code_file = check_semicolon(file_obj)
-            if status_code_file:
-                print(
-                    f"{red(filename)}: contains a semicolon at the end. "
-                    f"dbt does not support that."
-                )
-                status_code = status_code_file
-
+    status_code = has_labels_key(
+        paths=args.filenames,
+        manifest=manifest,
+        include_disabled=args.include_disabled,
+    )
     end_time = time.time()
     script_args = vars(args)
 
@@ -72,13 +75,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         manifest=manifest,
         event_properties={
             "hook_name": os.path.basename(__file__),
-            "description": "Check the script does contain a semicolon.",
+            "description": "Check model has labels keys",
             "status": status_code,
             "execution_time": end_time - start_time,
             "is_pytest": script_args.get("is_test"),
         },
     )
-    print("bihibhibibihbihbi")
+
     return status_code
 
 

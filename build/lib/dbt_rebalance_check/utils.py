@@ -85,10 +85,14 @@ class SourceSchema:
     prefix: str = "source"
 
 
+def get_dbt_model_query(model: Model) -> str:
+    return model.node['raw_code']
+
+
 def cmd_output(
-    *cmd: str,
-    expected_code: Optional[int] = 0,
-    **kwargs: Any,
+        *cmd: str,
+        expected_code: Optional[int] = 0,
+        **kwargs: Any,
 ) -> str:
     kwargs.setdefault("stdout", subprocess.PIPE)
     kwargs.setdefault("stderr", subprocess.PIPE)
@@ -107,9 +111,9 @@ def cmd_output(
 
 
 def paths_to_dbt_models(
-    paths: Sequence[str],
-    prefix: str = "",
-    postfix: str = "",
+        paths: Sequence[str],
+        prefix: str = "",
+        postfix: str = "",
 ) -> List[str]:
     return [prefix + Path(path).stem + postfix for path in paths]
 
@@ -133,10 +137,10 @@ def get_config_file(config_file_path: str) -> Dict[str, Any]:
 
 
 def get_models(
-    manifest: Dict[str, Any],
-    filenames: Set[str],
-    include_ephemeral: bool = False,
-    include_disabled: bool = False,
+        manifest: Dict[str, Any],
+        filenames: Set[str],
+        include_ephemeral: bool = False,
+        include_disabled: bool = False,
 ) -> Generator[Model, None, None]:
     nodes = manifest.get("nodes", {})
     for key, node in nodes.items():
@@ -144,8 +148,8 @@ def get_models(
         # someone can make an argument for their inclusion on a case by case basis
         # in which case we would pass `include_ephemeral`
         if (
-            not include_ephemeral
-            and node.get("config", {}).get("materialized") == "ephemeral"
+                not include_ephemeral
+                and node.get("config", {}).get("materialized") == "ephemeral"
         ):
             continue
         # In case a disabled model is still in `nodes`
@@ -158,7 +162,7 @@ def get_models(
 
 
 def get_ephemeral(
-    manifest: Dict[str, Any],
+        manifest: Dict[str, Any],
 ) -> List[str]:
     output = []
     nodes = manifest.get("nodes", {})
@@ -173,7 +177,7 @@ def get_ephemeral(
 
 
 def get_snapshots(
-    manifest: Dict[str, Any],
+        manifest: Dict[str, Any],
 ) -> List[str]:
     output = []
     nodes = manifest.get("nodes", {})
@@ -188,8 +192,8 @@ def get_snapshots(
 
 
 def get_macros(
-    manifest: Dict[str, Any],
-    filenames: Set[str],
+        manifest: Dict[str, Any],
+        filenames: Set[str],
 ) -> Generator[Macro, None, None]:
     macros = manifest.get("macros", {})
     for key, macro in macros.items():
@@ -228,7 +232,7 @@ def get_disabled(manifest: Dict[str, Any], include_disabled: bool = False) -> Li
 
 
 def get_model_sqls(
-    paths: Sequence[str], manifest: Dict[str, Any], include_disabled: bool = False
+        paths: Sequence[str], manifest: Dict[str, Any], include_disabled: bool = False
 ) -> Dict[str, Any]:
     ephemeral = get_ephemeral(manifest)
     sqls = get_filenames(paths, [".sql"])
@@ -242,7 +246,7 @@ def get_model_sqls(
 
 
 def get_model_schemas(
-    yml_files: Sequence[Path], filenames: Set[str], all_schemas: bool = False
+        yml_files: Sequence[Path], filenames: Set[str], all_schemas: bool = False
 ) -> Generator[ModelSchema, None, None]:
     for yml_file in yml_files:
         with open(yml_file, "r") as file:
@@ -260,7 +264,7 @@ def get_model_schemas(
 
 
 def get_macro_schemas(
-    yml_files: Sequence[Path], filenames: Set[str], all_schemas: bool = False
+        yml_files: Sequence[Path], filenames: Set[str], all_schemas: bool = False
 ) -> Generator[MacroSchema, None, None]:
     for yml_file in yml_files:
         schema = safe_load(yml_file.open())
@@ -277,13 +281,13 @@ def get_macro_schemas(
 
 
 def get_source_schemas(
-    yml_files: Sequence[Path], include_disabled: bool = False
+        yml_files: Sequence[Path], include_disabled: bool = False
 ) -> Generator[SourceSchema, None, None]:
     for yml_file in yml_files:
         schema = safe_load(yml_file.open())
         for source in schema.get("sources", []):
             if not include_disabled and not source.get("config", {}).get(
-                "enabled", True
+                    "enabled", True
             ):
                 continue
             source_name = source.get("name")
@@ -324,7 +328,7 @@ def get_test(node_id: str, manifest: Dict[str, Any]) -> Test:
 
 
 def get_parent_childs(
-    manifest: Dict[str, Any], obj: Any, manifest_node: str, node_types: List[str]
+        manifest: Dict[str, Any], obj: Any, manifest_node: str, node_types: List[str]
 ) -> Generator[Union[Test, Model, Source], None, None]:
     deps = manifest.get(manifest_node, {})
     for dep_name, dep_items in deps.items():
@@ -356,8 +360,8 @@ def get_parent_childs(
 
 
 def get_filenames(
-    paths: Sequence[str],
-    extensions: Optional[Sequence[str]] = None,
+        paths: Sequence[str],
+        extensions: Optional[Sequence[str]] = None,
 ) -> Dict[str, Path]:
     result = {}
     for path in paths:
@@ -525,7 +529,8 @@ def raise_invalid_property_yml_version(path: str, issue: str) -> None:
     raise CompilationException(
         "The yml property file at {} is invalid because {}. Please consult the "
         "documentation for more information on yml property file syntax:\n\n"
-        "https://github.com/dbt-checkpoint/dbt-checkpoint/blob/main/HOOKS.md#check-column-desc-are-same".format(  # noqa: E501, line length
+        "https://github.com/dbt-checkpoint/dbt-checkpoint/blob/main/HOOKS.md#check-column-desc-are-same".format(
+            # noqa: E501, line length
             path, issue
         )
     )
@@ -535,11 +540,11 @@ class ParseDict(argparse.Action):
     """Parse a KEY=VALUE string-list into a dictionary"""
 
     def __call__(
-        self,
-        parser: argparse.ArgumentParser,
-        namespace: argparse.Namespace,
-        values: Union[Text, Sequence[Any], None],
-        option_string: Optional[str] = None,
+            self,
+            parser: argparse.ArgumentParser,
+            namespace: argparse.Namespace,
+            values: Union[Text, Sequence[Any], None],
+            option_string: Optional[str] = None,
     ) -> None:
         """Perform the parsing"""
         result = {}
@@ -556,10 +561,10 @@ class ParseDict(argparse.Action):
 
 
 def add_related_sqls(
-    yml_path: str,
-    nodes: Dict[Any, Any],
-    paths_with_missing: Set[str],
-    include_ephemeral: bool = False,
+        yml_path: str,
+        nodes: Dict[Any, Any],
+        paths_with_missing: Set[str],
+        include_ephemeral: bool = False,
 ) -> None:
     yml_path_class = Path(yml_path)
     yml_path_parts = list(yml_path_class.parts)
@@ -569,8 +574,8 @@ def add_related_sqls(
 
     for key, node in nodes.items():
         if (
-            not include_ephemeral
-            and node.get("config", {}).get("materialized") == "ephemeral"
+                not include_ephemeral
+                and node.get("config", {}).get("materialized") == "ephemeral"
         ):
             continue
 
@@ -583,15 +588,15 @@ def add_related_sqls(
 
 
 def add_related_ymls(
-    sql_path: str,
-    nodes: Dict[Any, Any],
-    paths_with_missing: Set[str],
-    include_ephemeral: bool = False,
+        sql_path: str,
+        nodes: Dict[Any, Any],
+        paths_with_missing: Set[str],
+        include_ephemeral: bool = False,
 ) -> None:
     for key, node in nodes.items():
         if (
-            not include_ephemeral
-            and node.get("config", {}).get("materialized") == "ephemeral"
+                not include_ephemeral
+                and node.get("config", {}).get("materialized") == "ephemeral"
         ):
             continue
 
@@ -619,11 +624,11 @@ def _discover_prop_files(model_path):  # type: ignore
 
 
 def get_missing_file_paths(
-    paths: Sequence[str],
-    manifest: Dict[Any, Any] = {},
-    include_ephemeral: bool = False,
-    extensions: Sequence[str] = [".sql", ".yml", ".yaml"],
-    exclude_pattern: str = "",
+        paths: Sequence[str],
+        manifest: Dict[Any, Any] = {},
+        include_ephemeral: bool = False,
+        extensions: Sequence[str] = [".sql", ".yml", ".yaml"],
+        exclude_pattern: str = "",
 ) -> Set[str]:
     nodes = manifest.get("nodes", {})
     paths_with_missing = set(paths)
@@ -655,7 +660,7 @@ def yellow(string: Optional[Any]) -> str:
 
 
 def extend_dbt_project_dir_flag(
-    cmd: List[str], cmd_flags: List[str], dbt_project_dir: str = ""
+        cmd: List[str], cmd_flags: List[str], dbt_project_dir: str = ""
 ) -> List[str]:
     if dbt_project_dir and not "--project-dir" in cmd_flags:  # noqa
         cmd.extend(["--project-dir", dbt_project_dir])

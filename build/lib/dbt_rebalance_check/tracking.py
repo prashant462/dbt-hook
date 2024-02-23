@@ -6,7 +6,7 @@ from typing import Optional
 
 from mixpanel import Mixpanel
 
-from utils import get_config_file
+from dbt_rebalance_check.utils import get_config_file
 
 MIXPANEL_DEV_ENV = "34ffa16dc37f248c18ad6d1b9ea9c3a8"
 MIXPANEL_PROD_ENV = "3fa3db873f6950d10bd770a49c57e33e"
