@@ -41,9 +41,7 @@ def has_labels_key(
             rebalanceHint = create_repartition_hint(parition)
             # print(parition)
             # print(rebalanceHint)
-            if rebalanceHint in modelQuery:
-                status_code = 0
-            else:
+            if rebalanceHint not in modelQuery:
                 status_code = 1
                 print("REBALANCE hint "+ rebalanceHint+" not found in model "+ model.model_name + " Partition column provided: " + parition)
     return status_code
